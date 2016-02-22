@@ -1,0 +1,7 @@
+base   tumblr
+author Lee Kwangyoung
+email  ipari@leaflette.com
+date   2016-02-28
+name   tumblr plugin
+desc   Render tumblr in DokuWiki
+url    http://dokuwiki.org

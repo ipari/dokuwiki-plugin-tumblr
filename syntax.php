@@ -70,6 +70,7 @@ class syntax_plugin_tumblr extends DokuWiki_Syntax_Plugin {
 
         $data = array();
         $data['url'] = $params[0];
+        $data['page'] = $params[1];
         // more options here
 
         return $data;
@@ -88,12 +89,14 @@ class syntax_plugin_tumblr extends DokuWiki_Syntax_Plugin {
 
         // prevent caching to show lastest posts
         $renderer->info['cache'] = false;
-        $renderer->doc .= $this->_tumblr($data);
+        $renderer->doc .= $this->tumblr($data);
         return true;
     }
 
-    function _loadRSS($url) {
+    function load_rss($url) {
+        global $conf;
         require_once(DOKU_INC.'inc/FeedParser.php');
+
         $feed = new FeedParser();
         $feed->set_feed_url($url);
         $rc = $feed->init();
@@ -108,36 +111,41 @@ class syntax_plugin_tumblr extends DokuWiki_Syntax_Plugin {
                 'date'          => $item->get_local_date($conf['dformat']),
                 'permalink'     => $item->get_permalink(),
                 'description'   => $item->get_description(),
-                'tags'          => $this->_tags($item->get_categories())
+                'tags'          => $this->tags($item->get_categories())
             );
         }
         return $posts;
     }
 
-    function _getURL($url) {
-        // return rss url by URL parameter
-        $page = $_REQUEST['page'];
-        $post = $_REQUEST['post'];
-        $search = $_REQUEST['search'];
-        $tagged = $_REQUEST['tagged'];
+    function get_url_parameters() {
+        $parameters = array(
+            'page'      => $_REQUEST['page'] ? $_REQUEST['page'] : 0,
+            'post'      => $_REQUEST['post'],
+            'search'    => $_REQUEST['search'],
+            'tagged'    => $_REQUEST['tagged']
+        );
+        return $parameters;
+    }
 
-        if (!$page) {
-            $page = 0;
-        }
-        if ($search) {
-            $new_url = $url.'/search/'.$search.'/page/'.$page.'/rss';
-        } elseif ($tagged) {
-            $new_url = $url.'/tagged/'.$tagged.'/page/'.$page.'/rss';
-        } elseif ($post) {
-            $new_url = $url.'/'.$post.'/rss';
+    function get_url($url, $params) {
+        // return rss url by URL parameter
+        if ($params['search']) {
+            $new_url = $url.'/search/'.$params['search'].'/page/'.$params['page'].'/rss';
+        } elseif ($params['tagged']) {
+            $new_url = $url.'/tagged/'.$params['tagged'].'/page/'.$params['page'].'/rss';
+        } elseif ($params['post']) {
+            $new_url = $url.'/'.$params['post'].'/rss';
         } else {
-            $new_url = $url.'/page/'.$page.'/rss';
+            $new_url = $url.'/page/'.$params['page'].'/rss';
         }
         return $new_url;
     }
 
-    function _tags($tags) {
+    function tags($tags) {
         // SimplePie Object to Array
+        if(!$tags) {
+            return false;
+        }
         $new_tags = array();
         foreach($tags as $tag) {
             $new_tags[] = $tag->term;
@@ -145,18 +153,71 @@ class syntax_plugin_tumblr extends DokuWiki_Syntax_Plugin {
         return $new_tags;
     }
 
-    function _tumblr($data) {
-        $ret = '';
-        $url = $this->_getURL($data['url']);
-        $posts = $this->_loadRss($url);
+    function make_link($url, $ID, $inner=false) {
+        // tumblr post url format is http://oo.tumblr.com/post/123456789012
+        $post_id = end(explode('/',$url));
+        $html .= '<a href="'.wl($ID, 'post='.$post_id).'">';
+        $html .= $inner ? $inner : $url;
+        $html .= '</a>';
+        return $html;
+    }
+
+    function print_tags($tags, $ID) {
+        if(!$tags) {
+            return false;
+        }
+        $html .= '<ul>';
+        foreach($tags as $tag) {
+            $html .= '<li>';
+            $html .= '<a href="'.wl($ID, 'tagged='.str_replace(" ", "-", $tag)).'">'.$tag.'</a>';
+            $html .= '</li>';
+        }
+        $html .= '</ul>';
+        return $html;
+    }
+
+    function tumblr($options) {
+        global $ID;
+
+        $html = '';
+        $params = $this->get_url_parameters();
+        $url = $this->get_url($options['url'], $params);
+        $pID = $options['page'] ? $options['page'] : $ID;
+        $posts = $this->load_rss($url);
         if (!$posts) {
             print('RSS load failed');
             return false;
         }
+        // render page
+        $html .= '<div class="tumblr-container">';
         foreach($posts as $post) {
-            // Do something
+            $html .= '<div class="tumblr-post">';
+            $html .= '<h2>'.$post['title'].'</h2>';
+
+            $html .= '<div>'.$post['description'].'</div>';
+            $html .= '<div class="tumblr-info">';
+            $html .= '<dl>';
+            $html .= '<dt>DATE</dt><dd>'.$post['date'].'</dd>';
+            $html .= '<dt>PERMALINK</dt><dd>'.$this->make_link($post['permalink'], $pID).'</dd>';
+            $html .= '</dl>';
+            if ($post['tags']) {
+                $html .= '<div class="tumblr-tags">'.$this->print_tags($post['tags'], $pID).'</div>';
+            }
+            $html .= '</div>';
+            $html .= '</div>'; // end of tumblr-post
         }
-        return $posts;
+        $html .= '<div class="tumblr-nav">';
+        if (!$options['search']) {
+            $html .= '<div class="tumblr-search">';
+            $html .= '<form method="get">';
+            $html .= '<input type="text" name="search">';
+            $html .= '<button type="submit">검색</button>';
+            $html .= '</form>';
+            $html .= '</div>'; // end of tumblr-search
+        }
+        $html .= '</div>'; // end of tumblr-menu
+        $html .= '</div>'; // end of tumblr-container
+        return $html;
     }
 }
 

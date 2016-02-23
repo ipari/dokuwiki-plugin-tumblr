@@ -1,0 +1,40 @@
+.tumblr-post {
+    margin-bottom: 2em;
+
+    ul {
+        margin: 0;
+        list-style-type: none;
+
+        li {
+            margin: 0 1em 0 0;
+            display: inline-block;
+
+            a,
+            a:link,
+            a:hover,
+            a:visited {
+                color: @ini_text_alt;
+                text-decoration: none;
+            }
+        }
+        li:before {
+            color: @ini_text_alt;
+            content: "#";
+        }
+    }
+
+    dl {
+        dt {
+            width: 8em;
+            float: left;
+        }
+    }
+}
+
+.tumblr-nav {
+    text-align: center;
+    
+    .tumblr-search {
+        margin: 0 auto;
+    }
+}

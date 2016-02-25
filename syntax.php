@@ -93,6 +93,8 @@ class syntax_plugin_tumblr extends DokuWiki_Syntax_Plugin {
         return true;
     }
 
+    public $tumblr_url = false;
+
     function load_rss($url) {
         global $conf;
         require_once(DOKU_INC.'inc/FeedParser.php');
@@ -117,6 +119,14 @@ class syntax_plugin_tumblr extends DokuWiki_Syntax_Plugin {
         return $posts;
     }
 
+    function page_exists($url) {
+        require_once(DOKU_INC.'inc/FeedParser.php');
+        $feed  = new FeedParser();
+        $feed->set_feed_url($url);
+        $feed->init();
+        return $feed->get_item_quantity();
+    }
+
     function get_url_parameters() {
         $parameters = array(
             'page'      => $_REQUEST['page'] ? $_REQUEST['page'] : 0,
@@ -127,7 +137,12 @@ class syntax_plugin_tumblr extends DokuWiki_Syntax_Plugin {
         return $parameters;
     }
 
-    function get_url($url, $params) {
+    function get_url($page=false) {
+        $url = $this->tumblr_url;
+        $params = $this->get_url_parameters();
+        if ($page !== false) {
+            $params['page'] = $page;
+        }
         // return rss url by URL parameter
         if ($params['search']) {
             $new_url = $url.'/search/'.$params['search'].'/page/'.$params['page'].'/rss';
@@ -176,12 +191,31 @@ class syntax_plugin_tumblr extends DokuWiki_Syntax_Plugin {
         return $html;
     }
 
+    function get_nav_query($next) {
+        $params = $this->get_url_parameters();
+        // page 1 is not exists on tumblr
+        if ($next) {
+            $params['page'] = ($params['page'] == 0) ? 2 : $params['page'] + 1;
+        } else {
+            $params['page'] = ($params['page'] == 2) ? 0 : $params['page'] - 1;
+        }
+
+        // check url exists
+        $url = $this->get_url($params['page']);
+        if ($params['page'] >= 0 && $this->page_exists($url)) {
+            return http_build_query($params, '', '&amp;');
+        } else {
+            return false;
+        }
+    }
+
     function tumblr($options) {
+        global $lang;
         global $ID;
+        $this->tumblr_url = $options['url'];
 
         $html = '';
-        $params = $this->get_url_parameters();
-        $url = $this->get_url($options['url'], $params);
+        $url = $this->get_url();
         $pID = $options['page'] ? $options['page'] : $ID;
         $posts = $this->load_rss($url);
         if (!$posts) {
@@ -197,25 +231,44 @@ class syntax_plugin_tumblr extends DokuWiki_Syntax_Plugin {
             $html .= '<div>'.$post['description'].'</div>';
             $html .= '<div class="tumblr-info">';
             $html .= '<dl>';
-            $html .= '<dt>DATE</dt><dd>'.$post['date'].'</dd>';
-            $html .= '<dt>PERMALINK</dt><dd>'.$this->make_link($post['permalink'], $pID).'</dd>';
+            $html .= '<dt>DATE</dt>';
+            $html .= '<dd>'.$post['date'].'</dd>';
+            $html .= '<dt>PERMALINK</dt>';
+            $html .= '<dd>'.$this->make_link($post['permalink'], $pID).'</dd>';
             $html .= '</dl>';
             if ($post['tags']) {
-                $html .= '<div class="tumblr-tags">'.$this->print_tags($post['tags'], $pID).'</div>';
+                $html .= '<div class="tumblr-tags">';
+                $html .= $this->print_tags($post['tags'], $pID);
+                $html .= '</div>';
             }
             $html .= '</div>';
             $html .= '</div>'; // end of tumblr-post
         }
         $html .= '<div class="tumblr-nav">';
+        // page navigation
+        $prev_query = $this->get_nav_query(false);
+        $next_query = $this->get_nav_query(true);
+        if ($prev_query) {
+            $html .= '<div class="tumblr-btn-left">';
+            $html .= '<a href="'.wl($ID, $prev_query).'">'.$this->getLang('newer_posts').'</a>';
+            $html .= '</div>';
+        }
+        if ($next_query) {
+            $html .= '<div class="tumblr-btn-right">';
+            $html .= '<a href="'.wl($ID, $next_query).'">'.$this->getLang('older_posts').'</a>';
+            $html .= '</div>';
+        }
+        // search form
         if (!$options['search']) {
             $html .= '<div class="tumblr-search">';
             $html .= '<form method="get">';
             $html .= '<input type="text" name="search">';
-            $html .= '<button type="submit">검색</button>';
+            $html .= '<button type="submit">'.$lang['btn_search'].'</button>';
             $html .= '</form>';
             $html .= '</div>'; // end of tumblr-search
         }
-        $html .= '</div>'; // end of tumblr-menu
+        $html .= '<div class="tumblr-clear"></div>';
+        $html .= '</div>'; // end of tumblr-nav
         $html .= '</div>'; // end of tumblr-container
         return $html;
     }

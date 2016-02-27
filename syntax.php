@@ -276,6 +276,7 @@ class syntax_plugin_tumblr extends DokuWiki_Syntax_Plugin {
         // page navigation
         $html .= '<div class="tumblr-nav">';
         if ($_REQUEST['post']) {
+            $html .= '<div class="tumblr-btn-left" style="visibility:hidden">a</div>';
             // go back to list
             $html .= '<div class="tumblr-btn-right">';
             $html .= '<a href="javascript:history.go(-1)">'.$this->getLang('back_to_list').'</a>';

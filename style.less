@@ -39,6 +39,11 @@
         width: 8em;
         float: left;
     }
+    dd {
+        white-space: nowrap;
+        overflow-x: hidden;
+        text-overflow: ellipsis;
+    }
 }
 
 .tumblr-tags {
@@ -102,6 +107,12 @@
         text-decoration: none;
     }
 
+    .tumblr-btn-left,
+    .tumblr-btn-right {
+        margin-bottom: .5em;
+        min-width: 8em;
+    }
+
     .tumblr-btn-left {
         float: left;
         a {
@@ -114,6 +125,7 @@
 
     .tumblr-btn-right {
         float: right;
+        text-align: right;
         a {
             border-right: 4px solid @ini_text;
         }

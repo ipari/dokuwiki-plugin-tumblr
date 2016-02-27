@@ -1,37 +1,92 @@
 .tumblr-post {
     margin-bottom: 2em;
 
-    ul {
-        margin: 0;
-        list-style-type: none;
+    h2 {
+        white-space: nowrap;
+        overflow-x: hidden;
+        text-overflow: ellipsis;
 
-        li {
-            margin: 0 1em 0 0;
-            display: inline-block;
-
-            a,
-            a:link,
-            a:hover,
-            a:visited {
-                color: @ini_text_alt;
-                text-decoration: none;
-            }
-        }
-        li:before {
-            color: @ini_text_alt;
-            content: "#";
+        a,
+        a:link,
+        a:hover,
+        a:visited {
+            color: @ini_text;
+            text-decoration: none;
         }
     }
 
+    p + blockquote {
+        margin-top: -1em;
+    }
+
+    blockquote p:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.tumblr-post:hover {
+    margin-left: -16px;
+    padding-left: 10px;
+    border-left: 6px solid @ini_border;
+}
+
+.tumblr-meta {
+    margin-top: 1em;
     dl {
-        dt {
-            width: 8em;
-            float: left;
+        margin: 0;
+    }
+    dt {
+        width: 8em;
+        float: left;
+    }
+}
+
+.tumblr-tags {
+    margin-top: 1em;
+
+    ul {
+        margin: 0;
+        list-style-type: none;
+    }
+    li {
+        margin: 0 .5em 0 0;
+        display: inline-block;
+        a,
+        a:link,
+        a:hover,
+        a:visited {
+            color: @ini_text_alt;
+            text-decoration: none;
         }
+    }
+    li:before {
+        color: @ini_text_alt;
+        content: "#";
+    }
+}
+
+.tumblr-list {
+    table {
+        width: 100%;
+        border: none;
+    }
+    tr {
+        border-bottom: 1px dotted @ini_border;
+    }
+    td {
+        border: none;
+        vertical-align: text-top;
+    }
+
+    td.post-date {
+        min-width: 10em;
+        font-size: 80%;
+        color: @ini_text_alt;
     }
 }
 
 .tumblr-nav {
+    clear: both;
     text-align: center;
 
     a {
@@ -52,6 +107,9 @@
         a {
             border-left: 4px solid @ini_text;
         }
+        a:hover {
+            border-color: @ini_link;
+        }
     }
 
     .tumblr-btn-right {
@@ -59,10 +117,25 @@
         a {
             border-right: 4px solid @ini_text;
         }
+        a:hover {
+            border-color: @ini_link;
+        }
     }
 
     .tumblr-search {
+        display: inline-block;
         margin: 0 auto;
+        border: 1px solid @ini_border;
+
+        input[type=text] {
+            padding: 2px 4px;
+            border: none;
+        }
+        button {
+            padding: 2px 6px;
+            border-width: 0 0 0 1px;
+            border-color: @ini_border;
+        }
     }
 
     .tumblr-clear {

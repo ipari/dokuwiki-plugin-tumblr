@@ -16,8 +16,8 @@ class syntax_plugin_tumblr extends DokuWiki_Syntax_Plugin {
         'email'   => 'ipari@leaflette.com',
         'date'    => '2011-04-04',
         'name'    => 'Tumblr Plugin',
-        'desc'    => 'Read rss from Tumblr',
-        'url'     => 'http://leaflette.com'
+        'desc'    => 'Embed tumblr into DokuWiki',
+        'url'     => 'http://www.dokuwiki.org/plugin:tumblr'
         );
     }
 
@@ -66,13 +66,13 @@ class syntax_plugin_tumblr extends DokuWiki_Syntax_Plugin {
      */
     function handle($match, $state, $pos, Doku_Handler &$handler){
         $match = substr($match,9,-2); //strip '{{tumblr>' and '}}'
-        $params = explode(',',$match);
+        $params = explode('&',$match);
 
         $data = array();
-        $data['url'] = $params[0];
-        $data['page'] = $params[1];
-        // more options here
-
+        foreach($params as $param) {
+            $param = explode('=',$param);
+            $data[$param[0]] = $param[1];
+        }
         return $data;
     }
 
@@ -86,7 +86,6 @@ class syntax_plugin_tumblr extends DokuWiki_Syntax_Plugin {
      */
     function render($mode, Doku_Renderer &$renderer, $data) {
         if($mode != 'xhtml') return false;
-
         // prevent caching to show lastest posts
         $renderer->info['cache'] = false;
         $renderer->doc .= $this->tumblr($data);
@@ -216,45 +215,84 @@ class syntax_plugin_tumblr extends DokuWiki_Syntax_Plugin {
 
         $html = '';
         $url = $this->get_url();
-        $pID = $options['page'] ? $options['page'] : $ID;
+        $pID = $options['target'] ? $options['target'] : $ID;
         $posts = $this->load_rss($url);
         if (!$posts) {
-            print('RSS load failed');
-            return false;
+            $html .= '<div class="tumblr-post">';
+            $html .= '<h2>'.$this->getLang('page_not_exists').'</h2>';
+            $html .= '<p>';
+            $html .= '<a href="javascript:history.go(-1)">'.$this->getLang('back_to_list').'</a><br />';
+            $html .= $this->getLang('err_shown_when');
+            $html .= '</p>';
+            $html .= '<ul>';
+            $html .= '<li>'.$this->getLang('err_no_result').'</li>';
+            $html .= '<li>'.$this->getLang('err_not_accessible').'</li>';
+            $html .= '<li>'.$this->getLang('err_wrong_url').'</li>';
+            $html .= '</ul>';
+            $html .= '</div>';
+            return $html;
         }
         // render page
         $html .= '<div class="tumblr-container">';
-        foreach($posts as $post) {
-            $html .= '<div class="tumblr-post">';
-            $html .= '<h2>'.$post['title'].'</h2>';
+        if ($options['type'] != 'list') {
+            foreach($posts as $post) {
+                $html .= '<div class="tumblr-post">';
+                $html .= '<h2>'.$this->make_link($post['permalink'], $pID, $post['title']).'</h2>';
+                $html .= '<div>'.$post['description'].'</div>';
 
-            $html .= '<div>'.$post['description'].'</div>';
-            $html .= '<div class="tumblr-info">';
-            $html .= '<dl>';
-            $html .= '<dt>DATE</dt>';
-            $html .= '<dd>'.$post['date'].'</dd>';
-            $html .= '<dt>PERMALINK</dt>';
-            $html .= '<dd>'.$this->make_link($post['permalink'], $pID).'</dd>';
-            $html .= '</dl>';
-            if ($post['tags']) {
-                $html .= '<div class="tumblr-tags">';
-                $html .= $this->print_tags($post['tags'], $pID);
+                // post meta
+                $html .= '<div class="tumblr-meta">';
+                $html .= '<dl>';
+                $html .= '<dt>DATE</dt>';
+                $html .= '<dd>'.$post['date'].'</dd>';
+                $html .= '<dt>PERMALINK</dt>';
+                $html .= '<dd>'.$this->make_link($post['permalink'], $pID).'</dd>';
+                $html .= '</dl>';
+
+                // tags
+                if ($post['tags']) {
+                    $html .= '<div class="tumblr-tags">';
+                    $html .= $this->print_tags($post['tags'], $pID);
+                    $html .= '</div>';
+                }
                 $html .= '</div>';
+                $html .= '</div>'; // end of tumblr-post
             }
+        } else {
+            $html .= '<div class="tumblr-list">';
+            $html .= '<table>';
+            foreach($posts as $post) {
+                $html .= '<tr>';
+                $html .= '<td class="post-date"><time>'.$post['date'].'</time></td>';
+                $html .= '<td class="post-title">';
+                $html .= $this->make_link($post['permalink'], $pID, $post['title']);
+                $html .= '</td>';
+                $html .= '</tr>';
+            }
+            $html .= '</table>';
             $html .= '</div>';
-            $html .= '</div>'; // end of tumblr-post
         }
-        $html .= '<div class="tumblr-nav">';
+
         // page navigation
-        $prev_query = $this->get_nav_query(false);
-        $next_query = $this->get_nav_query(true);
-        if ($prev_query) {
-            $html .= '<div class="tumblr-btn-left">';
+        $html .= '<div class="tumblr-nav">';
+        if ($_REQUEST['post']) {
+            // go back to list
+            $html .= '<div class="tumblr-btn-right">';
+            $html .= '<a href="javascript:history.go(-1)">'.$this->getLang('back_to_list').'</a>';
+            $html .= '</div>';
+        } else {
+            $prev_query = $this->get_nav_query(false);
+            $next_query = $this->get_nav_query(true);
+            // left button
+            $html .= '<div class="tumblr-btn-left"';
+            if (!$prev_query) { $html .= ' style="visibility:hidden"'; }
+            $html .= '>';
             $html .= '<a href="'.wl($ID, $prev_query).'">'.$this->getLang('newer_posts').'</a>';
             $html .= '</div>';
-        }
-        if ($next_query) {
-            $html .= '<div class="tumblr-btn-right">';
+            // right button
+            $html .= '<div class="tumblr-btn-right"';
+            if (!$next_query) { $html .= ' style="visibility:hidden"'; }
+            $html .= '>';
             $html .= '<a href="'.wl($ID, $next_query).'">'.$this->getLang('older_posts').'</a>';
             $html .= '</div>';
         }

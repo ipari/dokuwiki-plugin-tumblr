@@ -3,5 +3,5 @@ author Lee Kwangyoung
 email  ipari@leaflette.com
 date   2016-02-27
 name   Tumblr Plugin
-desc   Embed Tumber into DokuWiki
+desc   Embed Tumblr into DokuWiki
 url    http://www.dokuwiki.org/plugin:tumblr
